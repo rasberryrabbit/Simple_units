@@ -10,3 +10,4 @@ uSimplefmParser.pas - Math formulra parser, it need mpa_arith math library.
 
 uzeroblock.pas - scan continuous zero byte in buffer.
 
+uLineReader.pas - simple line reader, it detect utf-8 string.
