@@ -41,11 +41,19 @@ type
                                 SizeOfStackReserve: PtrUInt;
                                 lpBytesBuffer:LPVOID):DWORD; stdcall;
 
+  PThreadexId = ^TThreadexId;
+  TThreadexId = record
+    ProcessId,
+    ThreadId,
+    dummy1,
+    dummy2 : PtrUInt;
+  end;
+
   NtCreateThreadExBuffer = record
     Size,
     Unknown1,
     UnKnown2: PtrUInt;
-    pThreadexId: PPtrUInt;
+    pThreadexId: pThreadexId;
     UnKnown4,
     UnKnown5,
     UnKnown6: PtrUInt;
@@ -60,11 +68,8 @@ var
   ntbuffer:NtCreateThreadExBuffer;
   hThread:HANDLE;
   status:DWORD;
-  {$ifndef CPU32}
-  buf641, buf642 : array[0..63] of byte;
-  {$else}
-  temp1,temp2,temp3:DWORD;
-  {$endif}
+  threadExBuf : TThreadexId;
+  temp1 : PtrUInt;
 begin
   modNtDll:=LoadLibrary('ntdll.dll');
   if modNtDll=0 then
@@ -80,35 +85,33 @@ begin
   end;
   fillchar(ntbuffer,sizeof(NtCreateThreadExBuffer),0);
   ntbuffer.Size := sizeof(NtCreateThreadExBuffer);
+
+  fillchar(threadExBuf,sizeof(TThreadexId),0);
+  temp1:=0;
   {$ifdef CPU32}
   // 32bit
-  temp1:=0;
-  temp2:=0;
-  temp3:=0;
   ntbuffer.Unknown1 := $10003;
   ntbuffer.Unknown2 := $8;
-  ntbuffer.pThreadexId := @temp2;
+  ntbuffer.pThreadexId := @threadexbuf;
   ntbuffer.Unknown4 := 0;
   ntbuffer.Unknown5 := $10004;
   ntbuffer.Unknown6 := 4;
   ntbuffer.pPTEB := @temp1;
   {$else}
   // 64bit
-  fillchar(buf641,sizeof(buf641),0);
-  fillchar(buf642,sizeof(buf642),0);
   ntbuffer.Unknown1 := 65539;
   ntbuffer.Unknown2 := $10;
-  ntbuffer.pThreadexId := @buf641[0];
+  ntbuffer.pThreadexId := @threadexbuf;
   ntbuffer.Unknown4 := 0;
   ntbuffer.Unknown5 := 65540;
   ntbuffer.Unknown6 := 8;
-  ntbuffer.pPTEB := @buf642[0];
+  ntbuffer.pPTEB := @temp1;
   {$endif}
   status:=funNtCreateThreadEx(@hThread, $1FFFFF, nil, process, Start, lpParameter,
                       False, 0, 0, 0, @ntbuffer);
   Result:=hThread;
   if pThreadid<>nil then
-    pThreadid^:=LPDWORD(ntbuffer.pThreadexId)^;
+    pThreadid^:=ntbuffer.pThreadexId^.ThreadId;
 end;
 
 end.
