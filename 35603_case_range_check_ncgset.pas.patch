@@ -1,0 +1,44 @@
+Index: compiler/ncgset.pas
+===================================================================
+--- compiler/ncgset.pas	(revision 42114)
++++ compiler/ncgset.pas	(working copy)
+@@ -80,6 +80,7 @@
+           procedure optimizevalues(var max_linear_list:int64;var max_dist:qword);virtual;
+           function  has_jumptable : boolean;virtual;
+           procedure genjumptable(hp : pcaselabel;min_,max_ : int64); virtual;
++          procedure genrangecheck(min_,max_ : int64); virtual;
+           procedure genlinearlist(hp : pcaselabel); virtual;
+           procedure genlinearcmplist(hp : pcaselabel); virtual;
+ 
+@@ -627,6 +628,12 @@
+       begin
+         internalerror(200209161);
+       end;
++      
++    procedure tcgcasenode.genrangecheck(min_,max_ : int64);
++      begin
++        hlcg.a_cmp_const_reg_label(current_asmdata.CurrAsmList,opsize,jmp_lt,min_,hregister,elselabel);
++        hlcg.a_cmp_const_reg_label(current_asmdata.CurrAsmList,opsize,jmp_gt,max_,hregister,elselabel);
++      end;
+ 
+ 
+     procedure tcgcasenode.genlinearlist(hp : pcaselabel);
+@@ -1248,6 +1255,7 @@
+                               (dist>3*labelcnt)) then
+                          begin
+                            { if the labels less or more a continuum then }
++                           genrangecheck(min_label.svalue,max_label.svalue);
+                            genjumptable(labels,min_label.svalue,max_label.svalue);
+                          end
+                        else
+@@ -1280,7 +1288,10 @@
+                                (dist<max_dist) and
+                                (min_label>=int64(low(aint))) and
+                                (max_label<=high(aint)) then
++                            begin
++                              genrangecheck(min_label.svalue,max_label.svalue);
+                               genjumptable(labels,min_label.svalue,max_label.svalue)
++                            end
+                             { value has been determined on an i7-4770 using a random case with random values
+                               if more values are known, this can be handled depending on the target CPU
+                               
