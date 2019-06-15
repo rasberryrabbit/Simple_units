@@ -1,0 +1,21 @@
+Index: lcl/interfaces/win32/win32callback.inc
+===================================================================
+--- lcl/interfaces/win32/win32callback.inc	(revision 61397)
++++ lcl/interfaces/win32/win32callback.inc	(working copy)
+@@ -1386,6 +1386,16 @@
+       Area := PDrawIS^.rcItem;
+       ItemState := TOwnerDrawState(PDrawIS^.itemState);
+       DC := PDrawIS^._hDC;
++      // odFocused on enter control didn't fired with ODA_DRAWENTIRE
++      if (PDrawItemStruct(LParam)^.itemAction and ODA_DRAWENTIRE)<>0 then 
++      begin
++        if lWinControl.Focused and not (odFocused in ItemState) then
++           if ((lWinControl is TCustomListBox)
++               and (TCustomListBox(lWinControl).ItemIndex=ItemID)) or
++              ((lWinControl is TCustomComboBox)
++               and (TCustomComboBox(lWinControl).ItemIndex=ItemID)) then
++                  Include(ItemState,odFocused);
++      end;
+     end;
+     if (aMsg = LM_DRAWLISTITEM) and (WindowInfo <> @DefaultWindowInfo) then
+     begin
