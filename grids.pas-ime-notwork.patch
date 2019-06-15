@@ -1,0 +1,79 @@
+Index: lcl/grids.pas
+===================================================================
+--- lcl/grids.pas	(revision 61397)
++++ lcl/grids.pas	(working copy)
+@@ -1325,6 +1325,8 @@
+     property TabStop default true;
+ {$ifdef WINDOWS}
+   protected
++    IMEStr: array[0..10] of WideChar;
++    IMELen: Integer;
+     procedure IMEStartComposition(var Msg:TMessage); message WM_IME_STARTCOMPOSITION;
+     procedure IMEComposition(var Msg:TMessage); message WM_IME_COMPOSITION;
+ {$endif}
+@@ -1904,7 +1906,7 @@
+ {$R lcl_grid_images.res}
+ 
+ uses
+-  WSGrids;
++  WSGrids, Imm;
+ 
+ {$WARN SYMBOL_DEPRECATED OFF}
+ {$IFDEF FPC_HAS_CPSTRING}
+@@ -9869,24 +9871,44 @@
+ begin
+   // enable editor
+   SelectEditor;
+-  EditorShow(True);
+   if Editor<>nil then
+-    Msg.Result:=SendMessage(Editor.Handle,Msg.msg,Msg.wParam,Msg.lParam);
++    Msg.Result:=-1;
+ end;
+ 
+ procedure TCustomGrid.IMEComposition(var Msg: TMessage);
+ var
+-  wc : pWideChar;
+-  s : string;
++  imc:HIMC;
++  s: UnicodeString;
+ begin
+-  wc := @Msg.wParamlo;
+-  s := Ansistring(WideCharLenToString(wc,1));
+-  // check valid mbcs
+-  if (Length(s)>0) and (s[1]<>'?') then
+-    Msg.wParamlo:=swap(pword(@s[1])^);
+-  // send first mbcs to editor
+-  if Editor<>nil then
+-    Msg.Result:=SendMessage(Editor.Handle,Msg.msg,Msg.wParam,Msg.lParam);
++  //TODO: break first composition char, but it enters composition mode.
++  if Editor<>nil then begin
++    // set string : not shown in editor
++    if Msg.lParam and GCS_RESULTSTR<>0 then
++    begin
++      imc:=ImmGetContext(Editor.Handle);
++      try
++        s:=IMEStr;
++        Editor.SetTextBuf(pchar(UTF8Encode(s)));
++        ImmSetCompositionStringW(imc,SCS_SETSTR,@IMEStr[0],(IMELen+1)*sizeof(WideChar),@IMEStr[0],IMELen*sizeof(WideChar));
++      finally
++        ImmReleaseContext(Editor.Handle,imc);
++      end;
++    end;
++    // get string
++    if Msg.lParam and GCS_COMPSTR<>0 then
++    begin
++      imc:=ImmGetContext(Handle);
++      try
++        IMELen:=ImmGetCompositionStringW(imc,GCS_COMPSTR,@IMEStr[0],sizeof(IMEStr)-Sizeof(WideChar));
++        IMELen:=IMELen div sizeof(WideChar);
++        IMEStr[IMELen]:=#0;
++      finally
++        ImmReleaseContext(Handle,imc);
++      end;
++      EditorShow(False);
++    end;
++    Msg.Result:=-1;
++  end;
+ end;
+ {$endif}
+ 
