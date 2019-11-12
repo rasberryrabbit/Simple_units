@@ -1,0 +1,71 @@
+Index: compiler/htypechk.pas
+===================================================================
+--- compiler/htypechk.pas	(revision 43449)
++++ compiler/htypechk.pas	(working copy)
+@@ -52,6 +52,8 @@
+          data         : tprocdef;
+          wrongparaidx,
+          firstparaidx : integer;
++         exact_count_gen,
++         exact_count_noconst,
+          exact_count,
+          equal_count,
+          cl1_count,
+@@ -2864,6 +2866,7 @@
+         rfh,rth  : double;
+         obj_from,
+         obj_to   : tobjectdef;
++        def_to_gen,
+         def_from,
+         def_to   : tdef;
+         currpt,
+@@ -2910,6 +2913,7 @@
+               eq:=te_incompatible;
+               def_from:=currpt.resultdef;
+               def_to:=currpara.vardef;
++              def_to_gen:=def_to;
+               if not(assigned(def_from)) then
+                internalerror(200212091);
+               if not(
+@@ -3123,7 +3127,17 @@
+               { increase correct counter }
+               case eq of
+                 te_exact :
++                 begin
+                   inc(hp^.exact_count);
++                  if not is_constnode(currpt.left) then
++                   begin
++                    { no constant }
++                    inc(hp^.exact_count_noconst);
++                    { generic }
++                    if (currpt.left.nodetype=loadn) and tstoreddef(def_to_gen).is_generic and tstoreddef(currpt.left.resultdef).is_generic then
++                     inc(hp^.exact_count_gen);
++                   end;
++                 end;
+                 te_equal :
+                   inc(hp^.equal_count);
+                 te_convert_l1 :
+@@ -3263,6 +3277,14 @@
+            res:=(bestpd^.coper_count-currpd^.coper_count);
+            if (res=0) then
+             begin
++             { more generic exact count }
++             res:=(currpd^.exact_count_gen-bestpd^.exact_count_gen);
++             if (res=0) then
++             begin
++             { more no constant exact count? }
++             res:=(currpd^.exact_count_noconst-bestpd^.exact_count_noconst);
++             if (res=0) then
++             begin
+              { less cl6 parameters? }
+              res:=(bestpd^.cl6_count-currpd^.cl6_count);
+              if (res=0) then
+@@ -3311,6 +3333,8 @@
+                    end;
+                  end;
+               end;
++              end;
++              end;
+             end;
+          end;
+         is_better_candidate:=res;
