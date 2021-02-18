@@ -197,7 +197,7 @@ begin
     if not FSkipLast then
        SetLastPos;
   end;
-  if FUpdated and (FEvent.WaitFor(0)=wrSignaled) then begin
+  if FUpdated {and (FEvent.WaitFor(0)=wrSignaled)} then begin
     FUpdated:=False;
     Invalidate;
   end;
@@ -236,7 +236,7 @@ var
   temp : TLogStringData;
   SRect : TRect;
 begin
-  FEvent.ResetEvent;
+  //FEvent.ResetEvent;
   try
   Canvas.Brush.Color:=Color;
   SRect:=GetScrolledClientRect;
@@ -269,7 +269,7 @@ begin
      else Canvas.Brush.Color:=clInactiveBorder;
   Canvas.FillRect(SRect.Left,SRect.Top,SRect.Left+BorderWidth-2,SRect.Bottom);
   finally
-    FEvent.SetEvent;
+    //FEvent.SetEvent;
   end;
   inherited Paint;
 end;
@@ -352,7 +352,7 @@ begin
   FAddFlag:=False;
   FSkipLast:=False;
   FIsViewHorz:=False;
-  FLineLimit:=1000;
+  FLineLimit:=100;
   FOnDeleteLimit:=nil;
   PrevCount:=-1;
   FLastPosY:=0;
@@ -365,7 +365,6 @@ begin
   FTimer:=TTimer.Create(self);
   FTimer.OnTimer:=@OnTimer;
   FTimer.Interval:=100;
-  FLineLimit:=1000;
   FUpdated:=True;
 end;
 
@@ -697,16 +696,11 @@ end;
 function TLogStringList.GetStrObj(Index, MaxLen: Integer; out
   obj: TLogStringData): string;
 begin
-  Enter;
+  Result:=Copy(Get(Index),1,MaxLen);
   try
-    Result:=Copy(inherited Get(Index),1,MaxLen);
-    try
-      obj:=TLogStringData(inherited GetObject(Index));
-    except
-      obj:=nil;
-    end;
-  finally
-    Leave;
+    obj:=TLogStringData(GetObject(Index));
+  except
+    obj:=nil;
   end;
 end;
 
