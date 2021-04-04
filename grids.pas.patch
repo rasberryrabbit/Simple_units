@@ -1,0 +1,51 @@
+Index: lcl/grids.pas
+===================================================================
+--- lcl/grids.pas	(revision 64904)
++++ lcl/grids.pas	(working copy)
+@@ -1351,7 +1351,6 @@
+   protected
+     procedure IMEStartComposition(var Msg:TMessage); message WM_IME_STARTCOMPOSITION;
+     procedure IMEComposition(var Msg:TMessage); message WM_IME_COMPOSITION;
+-    procedure IMEEndComposition(var Msg:TMessage); message WM_IME_ENDCOMPOSITION;
+ {$endif}
+   end;
+ 
+@@ -9988,7 +9987,7 @@
+ end;
+ 
+ {$ifdef WINDOWS}
+-// editor focusing make bad on IME input.
++// To do : first IME input doesn't showing
+ procedure TCustomGrid.IMEStartComposition(var Msg: TMessage);
+ begin
+   EditorSetValue;
+@@ -9995,12 +9994,13 @@
+   if EditingAllowed(FCol) and CanEditShow and (not FEditorShowing) and
+      (Editor<>nil) and (not Editor.Visible) and (not EditorLocked) then
+   begin
+-    // prepare IME input on Editor
+     Editor.Visible:=True;
+     FEditorOldValue := GetCells(FCol,FRow);
+     EditorSelectAll;
+     FGridState := gsNormal;
++    Editor.SetFocus;
+     Editor.Dispatch(Msg);
++    Msg.Result:=-1;
+   end;
+ end;
+ 
+@@ -10010,14 +10010,6 @@
+      (Editor<>nil) and (not Editor.Visible) and (not EditorLocked) then
+     Editor.Dispatch(Msg);
+ end;
+-
+-procedure TCustomGrid.IMEEndComposition(var Msg: TMessage);
+-begin
+-  if EditingAllowed(FCol) and CanEditShow and (not FEditorShowing) and
+-     (Editor<>nil) and (not Editor.Visible) and (not EditorLocked) then
+-    Editor.Dispatch(Msg);
+-end;
+-
+ {$endif}
+ 
+ function TCustomGrid.ClearCols: Boolean;
